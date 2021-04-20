@@ -1,4 +1,10 @@
 
+# My fork notes
+the Dockerfile needs to be in the project's root directory
+
+`cp ./scripts/Dockerfile .`
+
+`docker build -t mjt .`
 
 # WHAT IS THIS?
 

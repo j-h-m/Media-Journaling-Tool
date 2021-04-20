@@ -1,5 +1,9 @@
 FROM ubuntu:16.04
 
+# move into media-journaling-tool directory before building so COPY towards end doesn't fail
+# it should copy all of the media-journaling-tool files and directories to the container
+# if you leave the script in the scripts folder, it will just copy that and fail there
+
 RUN apt-get update && apt-get install -y \
 	autoconf \
 	automake \
@@ -69,7 +73,7 @@ RUN apt-get update && apt-get install -y \
 	yasm \ 
   	libgpac-dev
 
-CMD mkdir workdir
+RUN mkdir workdir
 WORKDIR workdir
 
 RUN wget https://www.nasm.us/pub/nasm/releasebuilds/2.13.03/nasm-2.13.03.tar.bz2
@@ -81,7 +85,7 @@ RUN make
 RUN make install
 WORKDIR ..
 
-RUN git -C x264 pull 2> /dev/null || git clone --depth 1 https://git.videolan.org/git/x264 
+RUN git -C x264 pull 2> /dev/null || git clone --depth 1 https://code.videolan.org/videolan/x264.git
 WORKDIR x264 
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 RUN ./configure --prefix="/usr/local" --bindir="/usr/local/bin" --enable-static --enable-pic
@@ -89,7 +93,7 @@ RUN make
 RUN make install
 WORKDIR ..
 
-RUN hg clone https://bitbucket.org/multicoreware/x265
+RUN hg clone http://hg.videolan.org/x265
 WORKDIR x265/build/linux 
 RUN cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=off ../../source
 RUN make
@@ -132,28 +136,28 @@ WORKDIR ..
 RUN  wget https://github.com/opencv/opencv/archive/3.4.5.zip && unzip 3.4.5.zip
 RUN  wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/3.4.5.zip && unzip opencv_contrib.zip
 WORKDIR opencv-3.4.5
-CMD  mkdir release
+RUN  mkdir release
 WORKDIR release
-RUN  cmake -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=/usr/bin/g++ CMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_FFMPEG=ON -DWITH_TBB=ON -DBUILD_PYTHON_SUPPORT=ON -DWITH_V4L=ON -DINSTALL_C_EXAMPLES=ON -DINSTALL_PYTHON_EXAMPLES=ON -DBUILD_EXAMPLES=ON -DWITH_QT=ON -DWITH_OPENGL=ON -DBUILD_FAT_JAVA_LIB=ON -DINSTALL_TO_MANGLED_PATHS=ON -DINSTALL_CREATE_DISTRIB=ON -DINSTALL_TESTS=ON -DENABLE_FAST_MATH=ON -DWITH_IMAGEIO=ON -DWITH_ITT=OFF -DPYTHON_NUMPY_INCLUDE_DIR=/usr/local/lib/python2.7/dist-packages/numpy/core/include  -DWITH_GSTREAMER=OFF -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.5/modules -DOpenCV_SHARED=ON -DBUILD_WITH_DYNAMIC_IPP=OFF -DWITH_IPP=OFF .. && make all -j2 
+RUN  cmake -G "Unix Makefiles" -DCMAKE_CXX_COMPILER=/usr/bin/g++ CMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_FFMPEG=ON -DWITH_TBB=ON -DBUILD_PYTHON_SUPPORT=ON -DWITH_V4L=ON -DINSTALL_C_EXAMPLES=ON -DINSTALL_PYTHON_EXAMPLES=ON -DBUILD_EXAMPLES=ON -DWITH_QT=ON -DWITH_OPENGL=ON -DBUILD_FAT_JAVA_LIB=ON -DBUILD_SHARED_LIBS=OFF -DINSTALL_TO_MANGLED_PATHS=ON -DINSTALL_CREATE_DISTRIB=ON -DINSTALL_TESTS=ON -DENABLE_FAST_MATH=ON -DWITH_IMAGEIO=ON -DWITH_ITT=OFF -DPYTHON_NUMPY_INCLUDE_DIR=/usr/local/lib/python2.7/dist-packages/numpy/core/include  -DWITH_GSTREAMER=OFF -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.5/modules -DOpenCV_SHARED=ON -DBUILD_WITH_DYNAMIC_IPP=OFF -DWITH_IPP=OFF .. && make all -j2 
 RUN make install 
 RUN /bin/bash -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf'
 RUN ldconfig
 WORKDIR ../..
 
-RUN cp /usr/local/python/2.7/cv2.so /usr/local/lib/python2.7/dist-packages/
+# RUN cp /usr/local/python/2.7/cv2.so /usr/local/lib/python2.7/dist-packages/
 
 RUN apt-get install -y libgtk2.0-dev  \
         graphviz \
         graphviz-dev 
 
-RUN pip install --upgrade pip
+RUN pip install wheel
 RUN pip install rawpy graphviz 
-RUN pip install numpy --upgrade
+RUN pip install numpy
 RUN pip install PyPDF2 setuptools 
 RUN pip install boto3==1.7.16 
 RUN pip install awscli==1.15.16
 RUN pip install httplib2
-RUN pip install numba
+RUN pip install numba==0.18.2
 
 RUN mkdir -p /opt/jt
 COPY . /opt/jt
@@ -165,6 +169,7 @@ WORKDIR /opt/jt
 RUN python setup.py sdist
 RUN pip install -e .
 WORKDIR /opt/jt/wrapper_plugins/jpeg2000_wrapper
+RUN pip install glymur==0.8.19 --no-cache-dir
 RUN python setup.py sdist
 RUN pip install -e .
 WORKDIR /opt/jt
