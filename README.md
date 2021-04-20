@@ -6,6 +6,8 @@ the Dockerfile needs to be in the project's root directory
 
 `docker build -t mjt .`
 
+`docker run -it mjt /bin/bash`
+
 # WHAT IS THIS?
 
 This tool is used to journal image, video and audio manipulations applied to high provenance media to produce manipulated media.  The intent is to capture all the steps for the purpose of evaluating effectiveness and accuracy of manipulation detection algorithms, training detectors and evaluating manipulation software for their effectiveness and correctness.  The tool has numerous pluggable components including validation rules, mask generation rules, summarization rules, image readers, and image manipulation plugins.
